@@ -1,14 +1,45 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
-	"time"
 	"os"
 	"strconv"
+	"time"
+	"strings"
 )
 
 const timeout = 500 * time.Millisecond
+
+func getService(port int, protocol string) (string, error) {
+
+	file, err := os.Open("/etc/services")
+	if err != nil {
+		return "unknown", err // In case of windows
+	}
+
+	scanner := bufio.NewScanner(file)
+	portProtocol := fmt.Sprintf("%s/%d", protocol, port)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		args := strings.Fields(line)
+		if (len(args)) < 2 {
+			continue
+		}
+		if args[1] == portProtocol {
+			return args[0], nil
+		}
+
+	}
+	return "unknown", scanner.Err()
+}
 
 func scanPort(host string, port int, results chan <- int) {
 	
@@ -52,7 +83,8 @@ func main() {
 	}
 
 	fmt.Printf("\nThe open ports in the host are: \n")
+	fmt.Printf("Port\tStatus\tService\n")
 	for _, port := range openPort {
-		fmt.Printf(" - Port %v is open\n", port)
+		fmt.Printf("%v\topen\t\n", port)
 	}
 }
