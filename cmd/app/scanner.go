@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 	"os"
+	"strconv"
 )
 
 const timeout = 500 * time.Millisecond
@@ -23,13 +24,16 @@ func scanPort(host string, port int, results chan <- int) {
 }
 
 func main() {
-	if (len(os.Args)) < 2 {
+	if (len(os.Args)) < 3 {
 		fmt.Println("Usage: gort <host>")
 	}
 
 	host := os.Args[1]
 	startPort := 1
-	endPort := 65000
+	endPort, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Printf("Scanning %v for open ports...\n", host)
 
