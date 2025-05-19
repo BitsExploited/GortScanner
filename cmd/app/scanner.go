@@ -29,7 +29,7 @@ func main() {
 	}
 
 	host := os.Args[1]
-	startPort := 1
+	startPort := 0
 	endPort, err := strconv.Atoi(os.Args[2])
 	if err != nil {
 		panic(err)
@@ -38,7 +38,7 @@ func main() {
 	fmt.Printf("Scanning %v for open ports...\n", host)
 
 	results := make(chan int)
-	var openPort []int
+	var openPort []string
 
 	for port := startPort; port <= endPort; port++ {
 		go scanPort(host, port, results)
@@ -47,12 +47,12 @@ func main() {
 	for i := startPort; i <= endPort; i++ {
 		port := <-results
 		if port != 0 {
-			openPort = append(openPort, port)
+			openPort = append(openPort, fmt.Sprintf("%d/tcp", port))
 		}
 	}
 
 	fmt.Printf("\nThe open ports in the host are: \n")
 	for _, port := range openPort {
-		fmt.Printf(" - Port %d is open\n", port)
+		fmt.Printf(" - Port %v is open\n", port)
 	}
 }
