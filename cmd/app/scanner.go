@@ -83,13 +83,16 @@ var CommonPorts = map[string]string{
 // Measuring latency for RTT
 func measureLatency(host string) (time.Duration, error) {
 
-	ports := 1000
+	// Checking with the most common ports to take average
+	ports := []string{"80",	"443", "22", "21", "25", "3389", "445", "3306", "8080", "1433"}
+
 	var totalRTT time.Duration
 	var count int
 
-	for port := 0; port < ports; port++ {
+	for _, port := range ports {
+
 		start := time.Now()
-		connection, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, port), 2 * time.Second)
+		connection, err :=  net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, port), 500 * time.Millisecond)
 		if err == nil {
 			connection.Close()
 			totalRTT += time.Since(start)
@@ -106,9 +109,9 @@ func measureLatency(host string) (time.Duration, error) {
 // Calculate timeout using the RTT in the above function
 func calculateTimeout(rtt time.Duration) time.Duration {
 	const (
-		minTimeout = 100 * time.Millisecond
-		maxTimeout = 1000 * time.Millisecond
-		multiplier = 3
+		minTimeout = 1000 * time.Millisecond
+		maxTimeout = 3000 * time.Millisecond
+		multiplier = 5
 	)
 
 	timeout := rtt * multiplier
@@ -163,12 +166,12 @@ func main() {
 	var openPort []int
 
 	// Dynamic timeout allocation
-	rtt, err := measureLatency(host)
-	timeout := calculateTimeout(rtt)
+//	rtt, err := measureLatency(host)
+//	timeout := calculateTimeout(rtt)
 
-	fmt.Printf("%v %v", rtt, timeout)
+	
 	for port := startPort; port <= endPort; port++ {
-		go scanPort(host, port, results, timeout)
+		go scanPort(host, port, results, 5000 * time.Millisecond)
 	}
 
 	for i := startPort; i <= endPort; i++ {
@@ -179,10 +182,10 @@ func main() {
 	}
 
 	fmt.Printf("\nThe open ports in the host are: \n")
-	fmt.Printf("Port\tStatus\tService\n")
+	fmt.Printf("Port\t\t\tStatus\t\t\tService\n")
 	for _, port := range openPort {
 		protocol := "tcp"
 		service := getService(port, protocol)
-		fmt.Printf("%v/%v\topen\t%v\n", port, protocol, service)
+		fmt.Printf("%v/%v\t\t\topen\t\t\t%v\n", port, protocol, service)
 	}
 }
