@@ -80,25 +80,30 @@ var CommonPorts = map[string]string{
 	"27017/tcp": "mongodb",     // MongoDB Database
 }
 
+// Measuring latency for RTT
 func measureLatency(host string) (time.Duration, error) {
 
-	start := time.Now()
-	connection, err := net.DialTimeout("tcp", fmt.Sprintf("%s:80", host), 2 * time.Second)
-	if err == nil {
-		connection.Close()
-		return time.Since(start), nil
+	ports := 1000
+	var totalRTT time.Duration
+	var count int
+
+	for port := 0; port < ports; port++ {
+		start := time.Now()
+		connection, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, port), 2 * time.Second)
+		if err == nil {
+			connection.Close()
+			totalRTT += time.Since(start)
+			count++
+		}
 	}
 
-	start = time.Now()
-	connection, err = net.DialTimeout("tcp", fmt.Sprintf("%s:443", host), 2 * time.Second)
-	if err == nil {
-		connection.Close()
-		return time.Since(start), nil
+	if count == 0 {
+		return 1000 * time.Millisecond, fmt.Errorf("could not measure latency")
 	}
-
-	return 500 * time.Millisecond, fmt.Errorf("could not measure latency")
+	return totalRTT / time.Duration(count), nil
 }
 
+// Calculate timeout using the RTT in the above function
 func calculateTimeout(rtt time.Duration) time.Duration {
 	const (
 		minTimeout = 100 * time.Millisecond
@@ -117,6 +122,7 @@ func calculateTimeout(rtt time.Duration) time.Duration {
 	return timeout
 }
 
+// Checks for the maps in the hardcoded hashmap
 func getService(port int, protocol string) string {
 	key := fmt.Sprintf("%d/%s", port, protocol)
 	if services, exists := CommonPorts[key]; exists {
@@ -125,6 +131,7 @@ func getService(port int, protocol string) string {
 	return "unknown"
 }
 
+// Scanning for open ports
 func scanPort(host string, port int, results chan <- int, timeout time.Duration) {
 	
 	address := fmt.Sprintf("%s:%d", host, port)
