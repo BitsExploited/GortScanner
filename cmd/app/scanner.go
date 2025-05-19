@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-const timeout = 3000 * time.Millisecond
 
 var CommonPorts = map[string]string{
 	"1/tcp":     "tcpmux",      // TCP Port Service Multiplexer
@@ -81,6 +80,43 @@ var CommonPorts = map[string]string{
 	"27017/tcp": "mongodb",     // MongoDB Database
 }
 
+func measureLatency(host string) (time.Duration, error) {
+
+	start := time.Now()
+	connection, err := net.DialTimeout("tcp", fmt.Sprintf("%s:80", host), 2 * time.Second)
+	if err == nil {
+		connection.Close()
+		return time.Since(start), nil
+	}
+
+	start = time.Now()
+	connection, err = net.DialTimeout("tcp", fmt.Sprintf("%s:443", host), 2 * time.Second)
+	if err == nil {
+		connection.Close()
+		return time.Since(start), nil
+	}
+
+	return 500 * time.Millisecond, fmt.Errorf("could not measure latency")
+}
+
+func calculateTimeout(rtt time.Duration) time.Duration {
+	const (
+		minTimeout = 100 * time.Millisecond
+		maxTimeout = 1000 * time.Millisecond
+		multiplier = 3
+	)
+
+	timeout := rtt * multiplier
+	if timeout < minTimeout {
+		return minTimeout
+	}
+	if timeout > maxTimeout {
+		return maxTimeout
+	}
+
+	return timeout
+}
+
 func getService(port int, protocol string) string {
 	key := fmt.Sprintf("%d/%s", port, protocol)
 	if services, exists := CommonPorts[key]; exists {
@@ -89,7 +125,7 @@ func getService(port int, protocol string) string {
 	return "unknown"
 }
 
-func scanPort(host string, port int, results chan <- int) {
+func scanPort(host string, port int, results chan <- int, timeout time.Duration) {
 	
 	address := fmt.Sprintf("%s:%d", host, port)
 	connection, err := net.DialTimeout("tcp", address, timeout)
@@ -119,8 +155,13 @@ func main() {
 	results := make(chan int)
 	var openPort []int
 
+	// Dynamic timeout allocation
+	rtt, err := measureLatency(host)
+	timeout := calculateTimeout(rtt)
+
+	fmt.Printf("%v %v", rtt, timeout)
 	for port := startPort; port <= endPort; port++ {
-		go scanPort(host, port, results)
+		go scanPort(host, port, results, timeout)
 	}
 
 	for i := startPort; i <= endPort; i++ {
