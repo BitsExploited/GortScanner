@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const timeout = 500 * time.Millisecond
+const timeout = 3000 * time.Millisecond
 
 var CommonPorts = map[string]string{
 	"1/tcp":     "tcpmux",      // TCP Port Service Multiplexer
