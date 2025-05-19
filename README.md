@@ -26,6 +26,7 @@ Gort is a lightweight, concurrent port scanner written in Go. It scans a specifi
 
 - [x] TCP port scanning
 - [x] Service identification using common ports map
+- [x] Dynamic timeout allocation by measuring RTT (Round-trip time)
 - [ ] Service indentification using client-side script
 - [ ] UDP port scanning
 - [ ] Custom start port option
